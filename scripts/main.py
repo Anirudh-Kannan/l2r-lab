@@ -7,6 +7,7 @@ import logging
 
 
 if __name__ == "__main__":
+    print(sys.argv)
     # Build environment
     env = build_env(
         controller_kwargs={"quiet": True},
