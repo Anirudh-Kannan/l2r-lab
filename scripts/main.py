@@ -42,7 +42,7 @@ if __name__ == "__main__":
         },
     )
     runner = create_configurable(
-        "config_files/random_agent_random_enc/runner.yaml", NameToSourcePath.runner
+        "config_files/canny/runner.yaml", NameToSourcePath.runner
     )
 
     with open(
