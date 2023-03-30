@@ -30,26 +30,20 @@ class CannyEncoder(BaseEncoder, torch.nn.Module):
         self.im_w = image_width
 
         input_sz = image_channels * image_height * image_width
-        self.z = z_dim
-        self.encoder  = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(input_sz, z_dim)
-        )
 
-    def encode_canny(self, x, z):
+    def encode_canny(self, x):
        # Apply Canny edge detection
         edges = cv2.Canny(x, 100, 200)
 
-        # Downsample to a vector of size z using mean pooling
-        downsampled_edges = cv2.resize(edges, (z, 1), interpolation=cv2.INTER_AREA)
-
+        # Flatten and reshape
+        flattened_edges = edges.flatten().reshape((1, -1))
         # Convert to a PyTorch tensor
-        downsampled_edges_torch = torch.from_numpy(downsampled_edges).float() 
-        return downsampled_edges_torch
+        flattened_edges_torch = torch.from_numpy(flattened_edges).float() 
+        print(flattened_edges_torch.shape)
+        return flattened_edges_torch
 
     def encode(self, x: np.ndarray, device = DEVICE) -> torch.Tensor:
-        print(x.shape)
-        return self.encode_canny(x, self.z)
+        return self.encode_canny(x)
 
     def decode(self, z):
         pass
