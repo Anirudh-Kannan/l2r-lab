@@ -7,6 +7,7 @@ from src.constants import DEVICE
 
 def crop_resize_center(img):
     assert img.shape == (384, 512, 3)
+    img = cv2.convertScaleAbs(img)
     img = cv2.Canny(img, 100, 200)
     img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
     p = cv2.resize(img, (144, 144))[68:110] / 255
