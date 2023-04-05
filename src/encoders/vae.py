@@ -5,12 +5,19 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import logging
+import sys
+import os
+
+sys.path.append(os.path.abspath('./') + '/src/encoders')
+sys.path.append(os.path.abspath('./') + '/src/encoders/segmentation_model')
+
+print(sys.path)
 
 from src.config.yamlize import yamlize
 from src.constants import DEVICE
 from src.encoders.base import BaseEncoder
 from src.encoders.transforms.preprocessing import crop_resize_center
-
+from segmentation_model.segment_transform import Inference
 
 @yamlize
 class VAE(BaseEncoder, torch.nn.Module):
@@ -25,7 +32,7 @@ class VAE(BaseEncoder, torch.nn.Module):
         load_checkpoint_from: str = "",
     ):
         super().__init__()
-
+       
         self.im_c = image_channels
         self.im_h = image_height
         self.im_w = image_width
@@ -44,6 +51,7 @@ class VAE(BaseEncoder, torch.nn.Module):
         sample_img = torch.zeros([1, image_channels, image_height, image_width])
         em_shape = nn.Sequential(*encoder_list[:-1])(sample_img).shape[1:]
         h_dim = np.prod(em_shape)
+        self.infer = Inference()
 
         self.fc1 = nn.Linear(h_dim, z_dim)
         self.fc2 = nn.Linear(h_dim, z_dim)
@@ -92,20 +100,16 @@ class VAE(BaseEncoder, torch.nn.Module):
 
     def encode(self, x: np.ndarray, device=DEVICE) -> torch.Tensor:
         # assume x is RGB image with shape (H, W, 3)
-        h = crop_resize_center(x).unsqueeze(0)
+        seg_op = self.infer.transform(x)
+        print("transform done")
+        h = crop_resize_center(seg_op).unsqueeze(0)
         v = self.representation(h)
+        print("representation done")
         return v
 
     def distribution(self, x, device=DEVICE):
         # expects (N, H, W, C)
-        if len(x.shape) == 3:
-            p = torch.zeros([1, 3, 42, 144]).to(device)
-            p[0] = crop_resize_center(x)
-        else:
-            p = torch.zeros([x.shape[0], 3, 42, 144]).to(device)
-            for i in range(x.shape[0]):
-                p[i] = crop_resize_center(x[i])
-        h = self.encoder(p)
+        h = self.encoder(x)
         z, mu, logvar = self.bottleneck(h)
         return z, mu, logvar
 
@@ -119,7 +123,8 @@ class VAE(BaseEncoder, torch.nn.Module):
         z = self.decode(z)
         return z, mu, logvar
 
-    def loss(self, actual, recon, mu, logvar, kld_weight=1.0):
+    def loss(self, actual, pred, kld_weight=1.0):
+        recon, mu, logvar = pred
         bce = F.binary_cross_entropy(recon, actual, reduction="sum")
         kld = -0.5 * torch.sum(1 + logvar - mu**2 - logvar.exp())
         return bce + kld * kld_weight
