@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: l2r-env
+spec:
+  containers:
+  - env:
+    image: docker.pdl.cmu.edu/l2r2022:latest
+    command:
+      - /bin/bash
+      - -c
+      - apt-get update && git clone https://github.com/Anirudh-Kannan/l2r-lab.git && cd l2r-lab && git checkout phoebe && pip install git+https://github.com/learn-to-race/l2r@aicrowd-environment && pip install -r setup/devtools_reqs.txt && pip install "opencv-python-headless<4.3" protobuf==3.20.* && sleep infinity
+    name: learner-container
+    stdin: true
+    tty: true
+    volumeMounts:
+    - mountPath: /mnt
+      name: l2r-volume
+    resources:
+        limits:
+          nvidia.com/gpu: 1
+  nodeSelector:
+    kubernetes.io/hostname: phortx2
+  restartPolicy: Never
+  volumes:
+  - name: l2r-volume
+    persistentVolumeClaim:
+            claimName: l2r-persistent-claim
