@@ -1,7 +1,2 @@
-name: VAE
-config:
-  image_channels: 3
-  image_height: 42
-  image_width: 144
-  z_dim: 32
-  load_checkpoint_from: '/mnt/vae/best_vae.pth'
+name: Unet
+  load_checkpoint_from: '/mnt/unet/CP_32_5.pth'
